@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABM de Personas</title>
+    <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<div id="spinner" class="oculto"></div>
+
+<h1>ABM de Personas</h1>
+
+<div id="formulario-lista">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Fecha de nacimiento</th>
+                <th>DNI</th>
+                <th>País de origen</th>
+                <th>Acción</th>
+            </tr>
+        </thead>
+        <tbody id="tabla-personas"></tbody>
+    </table>
+    <button onclick="mostrarFormularioABM('alta')">Agregar Elemento</button>
+</div>
+
+<div id="formulario-abm" class="oculto">
+    <h2 id="titulo-abm">Alta de Personas</h2>
+    <form id="form-abm">
+
+        <label>Tipo de Persona:
+            <select id="tipoPersona" onchange="ajustarCamposPorTipo()">
+                <option value="">Seleccionar</option>
+                <option value="Ciudadano">Ciudadano</option>
+                <option value="Extranjero">Extranjero</option>
+            </select>
+        </label>
+
+        <input type="hidden" id="personaId">
+        <label>Nombre: <input type="text" id="nombre" required></label>
+        <label>Apellido: <input type="text" id="apellido" required></label>
+        <label>Fecha de nacimiento: <input type="date" id="fechaNacimiento" required></label>
+
+        <div id="atributos-especificos">
+            <div id="atributos-ciudadanos">
+                <label>DNI: <input type="text" id="dni"></label>
+            </div>
+            <div id="atributos-extranjeros">
+                <label>País de origen: <input type="text" id="paisOrigen"></label>
+            </div>
+        </div>
+        
+        <button type="button" onclick="procesarABM()">Aceptar</button>
+        <button type="button" onclick="cancelarABM()">Cancelar</button>
+
+    </form>
+
+    <div class="spinner-container">
+        <div class="spinner"></div>
+    </div>
+    
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

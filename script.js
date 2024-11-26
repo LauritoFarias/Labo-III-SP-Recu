@@ -1,6 +1,6 @@
 const url = 'https://examenesutn.vercel.app/api/PersonaCiudadanoExtranjero';
 
-let vehiculosEnMemoria = []
+let personasEnMemoria = []
 
 class Persona {
     constructor(id, nombre, apellido, fechaNacimiento) {
@@ -103,46 +103,21 @@ function mostrarPersonas(personas) {
 
 function modificarPersona(id) {
     const persona = obtenerPersonaPorId(id);
-
     if (!persona) return alert("Persona no encontrada.");
-
     mostrarFormularioABM('modificación', persona);
 
-    document.getElementById('form-abm').onsubmit = function (e) {
-        e.preventDefault();
-
-        persona.nombre = document.getElementById('nombre').value;
-        persona.apellido = document.getElementById('apellido').value;
-        persona.fechaNacimiento = parseDateFromIso(document.getElementById('fechaNacimiento').value);
-
-        console.log(document.getElementById('fechaNacimiento').value);
-        console.log(fechaNacimiento);
-
-        if (persona instanceof Ciudadano) {
-            persona.dni = document.getElementById('dni').value;
-        } else if (persona instanceof Extranjero) {
-            persona.paisOrigen = document.getElementById('paisOrigen').value;
-        }
-
-        const xhr = new XMLHttpRequest();
-        xhr.open('PUT', `${url}/${id}`, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onload = function () {
-            if (xhr.status === 200) {
-                alert("Persona modificada exitosamente.");
-                cargarPersonas();
-            } else {
-                alert("Error al modificar persona.");
-            }
-        };
-        xhr.send(JSON.stringify(persona));
-    };
 }
 
 function eliminarPersona(id) {
+    const persona = obtenerPersonaPorId(id);
+    if (!persona) return alert("Persona no encontrada.");
+    mostrarFormularioABM('baja', persona);
+
+    /*
     if (!confirm("¿Está seguro de que desea eliminar esta persona?")) return;
 
     personasEnMemoria = personasEnMemoria.filter(v => v.id !== parseInt(id));
+    */
 }
 
 function mostrarFormularioABM(accion, persona = null) {
@@ -183,6 +158,16 @@ function mostrarFormularioABM(accion, persona = null) {
         tipoPersonaSelect.disabled = false;
     }
 
+    document.getElementById('aceptar-abm').addEventListener('click', function () {
+        if (accion === 'alta') {
+            agregarPersona();
+        } else if (accion === 'modificación') {
+            modificarApi(persona);
+        } else if (accion === 'baja') {
+            bajaApi(persona);
+        }
+    });
+
     document.getElementById('formulario-abm').classList.remove('oculto');
     document.getElementById('formulario-lista').classList.add('oculto');
 }
@@ -199,15 +184,13 @@ function ajustarCamposPorTipo() {
     }
 }
 
-function procesarABM() {
+function agregarPersona() {
+    console.log("agregarPersona");
     const id = document.getElementById('personaId').value;
     const tipo = document.getElementById('tipoPersona').value;
     const nombre = document.getElementById('nombre').value;
     const apellido = document.getElementById('apellido').value;
     const fechaNacimiento = parseInt((document.getElementById('fechaNacimiento').value).replace(/-/g, ''), 10);
-
-    console.log(document.getElementById('fechaNacimiento').value);
-    console.log(fechaNacimiento);
 
     let persona = null;
 
@@ -257,13 +240,104 @@ function procesarABM() {
         }
     }
 
-    console.log("Antes de agregar:", personasEnMemoria);
     persona.id = personasEnMemoria.length > 0 
         ? Math.max(...personasEnMemoria.map(v => parseInt(v.id))) + 1 
         : 1;
-    console.log("Justo antes de agregar: " + persona);
     personasEnMemoria.push(persona);
-    console.log("Después de agregar:", personasEnMemoria);
+
+    mostrarPersonas(personasEnMemoria);
+    cancelarABM();
+}
+
+function modificarApi(persona) {
+
+    const nombre = document.getElementById('nombre').value;
+    const apellido = document.getElementById('apellido').value;
+    const fechaNacimiento = parseInt((document.getElementById('fechaNacimiento').value).replace(/-/g, ''), 10);
+
+    if (!nombre || !apellido || !fechaNacimiento) {
+        return alert("Por favor, completa todos los campos requeridos.");
+    }
+
+    persona.nombre = nombre;
+    persona.apellido = apellido;
+    persona.fechaNacimiento = fechaNacimiento;
+
+    if (persona instanceof Ciudadano) {
+        persona.dni = document.getElementById('dni').value;
+    } else if (persona instanceof Extranjero) {
+        persona.paisOrigen = document.getElementById('paisOrigen').value;
+    }
+
+    switchSpinner(true);
+
+    fetch(url, {
+        method: "PUT",
+        headers:{
+            "Content-Type": "Application/json"
+        },
+        body: JSON.stringify(persona)
+    })
+    .then((respuesta) => 
+        {
+            return new Promise ((e, f) =>
+            {
+                if (respuesta.status == 200)
+                {
+                    e(respuesta.status);
+                }
+                else
+                {
+                    f(respuesta.status);
+                }
+            })
+        })
+    .then(status => {
+        {
+            console.log("modificarApi");
+            personasEnMemoria = personasEnMemoria.filter(persona => persona.id !== persona.id)
+            personasEnMemoria.push(persona);
+        }
+    })
+    .catch((error) => {window.alert("Error Del servidor - Status: " + error)})
+    .then(() => switchSpinner(false));
+
+    mostrarPersonas(personasEnMemoria);
+    cancelarABM();
+}
+
+function bajaApi(persona) {
+    console.log("bajaApi");
+    console.log(persona);
+
+    switchSpinner(true);
+
+    fetch(url,{
+        method: "DELETE",
+        headers: {
+            "Content-Type": "Application/json"
+        },
+        body: JSON.stringify(persona)
+    })
+    .then((respuesta) => {
+        return new Promise ((e, f) =>{
+            if (respuesta.status == 200)
+            {
+                e(respuesta);
+            }
+            else
+                f(respuesta);
+        });
+    })
+    .then( (respuesta) => {
+        console.log(respuesta);
+        const index = personasEnMemoria.findIndex(p => p.id === persona.id);
+            if (index !== -1) {
+                personasEnMemoria.splice(index, 1);
+            }
+    })
+    .catch((respuesta) => {window.alert("Error Del servidor - Status: " + respuesta.status)})
+    .then(() => switchSpinner(false));
 
     mostrarPersonas(personasEnMemoria);
     cancelarABM();
